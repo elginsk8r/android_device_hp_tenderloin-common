@@ -61,6 +61,10 @@ TARGET_NEEDS_PLATFORM_TEXT_RELOCATIONS := true
 TARGET_HAS_LEGACY_CAMERA_HAL1 := true
 TARGET_HAS_NO_CAMERA_FLASH := true
 
+TARGET_PROCESS_SDK_VERSION_OVERRIDE := \
+    /system/vendor/bin/hw/android.hardware.camera.provider@2.4-service=14 \
+    /system/bin/mediaserver=14
+
 # Device manifest
 DEVICE_MANIFEST_FILE := $(PLATFORM_PATH)/manifest.xml
 DEVICE_MATRIX_FILE := $(PLATFORM_PATH)/compatibility_matrix.xml
