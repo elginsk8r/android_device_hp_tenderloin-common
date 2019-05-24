@@ -132,11 +132,7 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/prebuilt/boot/moboot.splash.Android.tga:moboot.splash.Android.tga \
     $(LOCAL_PATH)/prebuilt/install/gapps-config.txt:install/.gapps-config-tenderloin.txt \
     $(LOCAL_PATH)/prebuilt/install/bin/e2fsck_static:install/bin/e2fsck_static \
-    $(LOCAL_PATH)/prebuilt/install/bin/resize2fs_static:install/bin/resize2fs_static \
-
-# Power
-PRODUCT_PACKAGES += \
-    power.tenderloin
+    $(LOCAL_PATH)/prebuilt/install/bin/resize2fs_static:install/bin/resize2fs_static
 
 # Recovery
 PRODUCT_COPY_FILES += \
