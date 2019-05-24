@@ -17,10 +17,29 @@
 LOCAL_PATH:= $(call my-dir)
 
 include $(CLEAR_VARS)
+
+LOCAL_CFLAGS += -Wall -Werror
+
+LOCAL_SRC_FILES := \
+    Power.cpp \
+    service.cpp \
+    power-common.c
+
+LOCAL_SHARED_LIBRARIES := \
+    liblog \
+    libcutils \
+    libdl \
+    libhidlbase \
+    libhidltransport \
+    libhardware \
+    libutils \
+    android.hardware.power@1.0
+
+LOCAL_MODULE := android.hardware.power@1.0-service-tenderloin
+LOCAL_INIT_RC := android.hardware.power@1.0-service-tenderloin.rc
 LOCAL_MODULE_RELATIVE_PATH := hw
-LOCAL_PROPRIETARY_MODULE := true
-LOCAL_SRC_FILES := power.c
-LOCAL_SHARED_LIBRARIES := liblog libcutils
 LOCAL_MODULE_TAGS := optional
-LOCAL_MODULE := power.tenderloin
-include $(BUILD_SHARED_LIBRARY)
+LOCAL_VENDOR_MODULE := true
+LOCAL_MODULE_OWNER := HP
+
+include $(BUILD_EXECUTABLE)

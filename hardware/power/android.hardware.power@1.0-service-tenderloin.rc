@@ -1,0 +1,10 @@
+on early-boot
+    chmod 0664 /sys/kernel/cpufreq_limit/limited_max_freq
+    chown system system /sys/kernel/cpufreq_limit/limited_max_freq
+    chmod 0664 /sys/kernel/cpufreq_limit/limited_min_freq
+    chown system system /sys/kernel/cpufreq_limit/limited_min_freq
+
+service power-hal-1-0 /vendor/bin/hw/android.hardware.power@1.0-service-tenderloin
+    class hal
+    user system
+    group system
