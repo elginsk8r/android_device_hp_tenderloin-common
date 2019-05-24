@@ -60,6 +60,12 @@ Return<void> Power::getPlatformLowPowerStats(getPlatformLowPowerStats_cb _hidl_c
     _hidl_cb(states, Status::SUCCESS);
     return Void();
 }
+Return<int32_t> Power::getFeature(EvervolvFeature feature)  {
+    if (feature == EvervolvFeature::SUPPORTED_PROFILES) {
+        return get_number_of_profiles();
+    }
+    return -1;
+}
 
 status_t Power::registerAsSystemService() {
     status_t ret = 0;
@@ -70,6 +76,14 @@ status_t Power::registerAsSystemService() {
         goto fail;
     } else {
         ALOGI("Successfully registered IPower");
+    }
+
+    ret = IEvervolvPower::registerAsService();
+    if (ret != 0) {
+        ALOGE("Failed to register IEvervolvPower (%d)", ret);
+        goto fail;
+    } else {
+        ALOGI("Successfully registered IEvervolvPower");
     }
 
 fail:

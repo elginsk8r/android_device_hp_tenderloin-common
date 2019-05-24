@@ -33,7 +33,8 @@ LOCAL_SHARED_LIBRARIES := \
     libhidltransport \
     libhardware \
     libutils \
-    android.hardware.power@1.0
+    android.hardware.power@1.0 \
+    vendor.evervolv.power@1.0
 
 LOCAL_MODULE := android.hardware.power@1.0-service-tenderloin
 LOCAL_INIT_RC := android.hardware.power@1.0-service-tenderloin.rc

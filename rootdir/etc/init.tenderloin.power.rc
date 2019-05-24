@@ -1,34 +1,7 @@
 on boot
-    # set permission for scaling_governor
-    chown system system /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
-    chown system system /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor
-    chmod 0664 /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
-    chmod 0664 /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor
-
     # allow system to modify kgsl trustzone governor
     chown system system /sys/class/kgsl/kgsl-3d0/pwrscale/trustzone/governor
     chmod 0664 /sys/class/kgsl/kgsl-3d0/pwrscale/trustzone/governor
-
-    # allow system to modify cpu input boost
-    chown system system /sys/kernel/cpu_input_boost/enabled
-    chmod 0664 /sys/kernel/cpu_input_boost/enabled
-    chown system system /sys/kernel/cpu_input_boost/ib_freqs
-    chmod 0664 /sys/kernel/cpu_input_boost/ib_freqs
-    chown system system /sys/kernel/cpu_input_boost/ib_duration_ms
-    chmod 0664 /sys/kernel/cpu_input_boost/ib_duration_ms
-
-    # allow system to modify ondemand governor
-    chown system system /sys/devices/system/cpu/cpufreq/ondemand/down_differential
-    chown system system /sys/devices/system/cpu/cpufreq/ondemand/io_is_busy
-    chown system system /sys/devices/system/cpu/cpufreq/ondemand/optimal_freq
-    chown system system /sys/devices/system/cpu/cpufreq/ondemand/sampling_down_factor
-    chown system system /sys/devices/system/cpu/cpufreq/ondemand/sampling_rate
-    chown system system /sys/devices/system/cpu/cpufreq/ondemand/sync_freq
-    chown system system /sys/devices/system/cpu/cpufreq/ondemand/up_threshold
-    chown system system /sys/devices/system/cpu/cpufreq/ondemand/up_threshold_any_cpu_load
-    chown system system /sys/devices/system/cpu/cpufreq/ondemand/up_threshold_multi_core
-    chmod 666 /sys/devices/system/cpu/cpufreq/ondemand/io_is_busy
-    chmod 666 /sys/devices/system/cpu/cpufreq/ondemand/sampling_down_factor
 
     setprop sys.usb.ffs.aio_compat 1
     setprop sys.io.scheduler "noop"
@@ -48,32 +21,6 @@ on enable-low-power
     write /sys/module/rpm_resources/enable_low_power/L2_cache 1
     write /sys/module/rpm_resources/enable_low_power/pxo 1
     write /sys/module/rpm_resources/enable_low_power/rpm_cpu 1
-
-    # Online the second core
-    write /sys/devices/system/cpu/cpu1/online 1
-
-    # CPU Scaling
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 384000
-    write /sys/devices/system/cpu/cpu1/cpufreq/scaling_min_freq 384000
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq 1728000
-    write /sys/devices/system/cpu/cpu1/cpufreq/scaling_max_freq 1728000
-
-    # CPU input boost
-    write /sys/kernel/cpu_input_boost/ib_freqs "1134000 1242000"
-    write /sys/kernel/cpu_input_boost/ib_duration_ms 1400
-
-    # Configure OnDemand
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "ondemand"
-    write /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor "ondemand"
-    write /sys/devices/system/cpu/cpufreq/ondemand/up_threshold 90
-    write /sys/devices/system/cpu/cpufreq/ondemand/io_is_busy 1
-    write /sys/devices/system/cpu/cpufreq/ondemand/sampling_down_factor 4
-    write /sys/devices/system/cpu/cpufreq/ondemand/down_differential 10
-    write /sys/devices/system/cpu/cpufreq/ondemand/up_threshold_multi_core 70
-    write /sys/devices/system/cpu/cpufreq/ondemand/optimal_freq 918000
-    write /sys/devices/system/cpu/cpufreq/ondemand/sync_freq 1026000
-    write /sys/devices/system/cpu/cpufreq/ondemand/up_threshold_any_cpu_load 80
-    write /sys/devices/system/cpu/cpufreq/ondemand/sampling_rate 50000
 
     # Entropy
     write /proc/sys/kernel/random/write_wakeup_threshold 4096
@@ -97,8 +44,6 @@ on enable-low-power
 
 on property:sys.boot_completed=1
     trigger enable-low-power
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "interactive"
-    write /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor "interactive"
     setprop sys.io.scheduler "bfq"
 
 on property:init.svc.recovery=running
