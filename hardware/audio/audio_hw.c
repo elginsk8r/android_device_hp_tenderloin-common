@@ -1017,6 +1017,29 @@ static uint32_t in_get_input_frames_lost(struct audio_stream_in *stream)
     return 0;
 }
 
+static int in_get_capture_position(const struct audio_stream_in *stream,
+                                   int64_t *frames, int64_t *time)
+{
+    if (stream == NULL || frames == NULL || time == NULL) {
+        return -EINVAL;
+    }
+    struct stream_in *in = (struct stream_in *)stream;
+    int ret = -ENOSYS;
+
+    lock_input_stream(in);
+    if (in->pcm) {
+        struct timespec timestamp;
+        unsigned int avail;
+        if (pcm_get_htimestamp(in->pcm, &avail, &timestamp) == 0) {
+            *frames = in->frames_read + avail;
+            *time = timestamp.tv_sec * 1000000000LL + timestamp.tv_nsec;
+            ret = 0;
+        }
+    }
+    pthread_mutex_unlock(&in->lock);
+    return ret;
+}
+
 static int in_add_audio_effect(const struct audio_stream *stream,
                                effect_handle_t effect)
 {
@@ -1029,6 +1052,97 @@ static int in_remove_audio_effect(const struct audio_stream *stream,
     return 0;
 }
 
+static int in_get_active_microphones(const struct audio_stream_in *stream,
+                                     struct audio_microphone_characteristic_t *mic_array,
+                                     size_t *mic_count) {
+    struct stream_in *in = (struct stream_in *)stream;
+    struct audio_device *adev = in->dev;
+    ALOGVV("%s", __func__);
+
+    lock_input_stream(in);
+    pthread_mutex_lock(&adev->lock);
+    int ret = platform_get_active_microphones(adev->platform, in->device,
+                                              audio_channel_count_from_in_mask(in->channel_mask),
+                                              in->source, in->usecase, mic_array, mic_count);
+    pthread_mutex_unlock(&adev->lock);
+    pthread_mutex_unlock(&in->lock);
+
+    return ret;
+}
+
+static int adev_get_microphones(const struct audio_hw_device *dev,
+                                struct audio_microphone_characteristic_t *mic_array,
+                                size_t *mic_count) {
+    struct audio_device *adev = (struct audio_device *)dev;
+    ALOGVV("%s", __func__);
+
+    pthread_mutex_lock(&adev->lock);
+    int ret = platform_get_microphones(adev->platform, mic_array, mic_count);
+    pthread_mutex_unlock(&adev->lock);
+
+    return ret;
+}
+
+static int in_set_microphone_direction(const struct audio_stream_in *stream,
+                                           audio_microphone_direction_t dir) {
+    (void)stream;
+    (void)dir;
+    ALOGVV("%s", __func__);
+    return -ENOSYS;
+}
+
+static int in_set_microphone_field_dimension(const struct audio_stream_in *stream, float zoom) {
+    (void)stream;
+    (void)zoom;
+    ALOGVV("%s", __func__);
+    return -ENOSYS;
+}
+
+static void in_update_sink_metadata(struct audio_stream_in *stream,
+                                    const struct sink_metadata *sink_metadata) {
+
+    if (stream == NULL
+            || sink_metadata == NULL
+            || sink_metadata->tracks == NULL) {
+        return;
+    }
+
+    int error = 0;
+    struct stream_in *in = (struct stream_in *)stream;
+    struct audio_device *adev = in->dev;
+    audio_devices_t device = AUDIO_DEVICE_NONE;
+
+    if (sink_metadata->track_count != 0)
+        device = sink_metadata->tracks->dest_device;
+
+    lock_input_stream(in);
+    pthread_mutex_lock(&adev->lock);
+    ALOGV("%s: in->usecase: %d, device: %x", __func__, in->usecase, device);
+
+    if (in->usecase == USECASE_AUDIO_RECORD_AFE_PROXY
+            && device != AUDIO_DEVICE_NONE
+            && adev->voice_tx_output != NULL) {
+        /* Use the rx device from afe-proxy record to route voice call because
+           there is no routing if tx device is on primary hal and rx device
+           is on other hal during voice call. */
+        adev->voice_tx_output->devices = device;
+
+        if (!voice_is_call_state_active(adev)) {
+            if (adev->mode == AUDIO_MODE_IN_CALL) {
+                adev->current_call_output = adev->voice_tx_output;
+                error = voice_start_call(adev);
+                if (error != 0)
+                    ALOGE("%s: start voice call failed %d", __func__, error);
+            }
+        } else {
+            adev->current_call_output = adev->voice_tx_output;
+            voice_update_devices_for_all_voice_usecases(adev);
+        }
+    }
+
+    pthread_mutex_unlock(&adev->lock);
+    pthread_mutex_unlock(&in->lock);
+}
 
 static int adev_open_output_stream(struct audio_hw_device *dev,
                                    audio_io_handle_t handle,
@@ -1232,6 +1346,11 @@ static int adev_open_input_stream(struct audio_hw_device *dev,
     in->stream.set_gain = in_set_gain;
     in->stream.read = in_read;
     in->stream.get_input_frames_lost = in_get_input_frames_lost;
+    in->stream.get_capture_position = in_get_capture_position;
+    in->stream.get_active_microphones = in_get_active_microphones;
+    in->stream.set_microphone_direction = in_set_microphone_direction;
+    in->stream.set_microphone_field_dimension = in_set_microphone_field_dimension;
+    in->stream.update_sink_metadata = in_update_sink_metadata;
 
     in->dev = adev;
     in->standby = true;
@@ -1304,6 +1423,7 @@ static int adev_open(const hw_module_t* module, const char* name,
     adev->hw_device.open_input_stream = adev_open_input_stream;
     adev->hw_device.close_input_stream = adev_close_input_stream;
     adev->hw_device.dump = adev_dump;
+    adev->device.get_microphones = adev_get_microphones;
 
     adev->ar = audio_route_init();
     adev->out_device = 0;
